@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>📡 Radar de Surebets — The Odds API</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-primary:    #080f1e;
+      --bg-secondary:  #0d1629;
+      --bg-card:       #111827;
+      --bg-input:      #0b1120;
+      --border:        #1e293b;
+      --border-bright: #334155;
+      --text-primary:  #f1f5f9;
+      --text-secondary:#94a3b8;
+      --text-muted:    #475569;
+      --blue:   #38bdf8;
+      --purple: #818cf8;
+      --green:  #34d399;
+      --amber:  #fbbf24;
+      --red:    #f87171;
+      --grad-brand: linear-gradient(135deg, #38bdf8, #a78bfa);
+      --grad-btn:   linear-gradient(135deg, #0ea5e9, #6366f1);
+      --grad-green: linear-gradient(135deg, #052e16, #064e3b);
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── HEADER ─────────────────────────────────────────── */
+    .site-header {
+      background: linear-gradient(180deg, #0d1a35 0%, #080f1e 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 2rem 1.5rem 1.75rem;
+      text-align: center;
+    }
+
+    .site-header h1 {
+      font-size: clamp(1.6rem, 5vw, 2.5rem);
+      font-weight: 900;
+      background: var(--grad-brand);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+    }
+
+    .site-header .tagline {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-top: 0.4rem;
+      letter-spacing: 0.02em;
+    }
+
+    /* ── MAIN LAYOUT ────────────────────────────────────── */
+    main {
+      flex: 1;
+      max-width: 860px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 2rem 1rem 3rem;
+    }
+
+    /* ── SECTION LABEL ──────────────────────────────────── */
+    .section-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── CARD ───────────────────────────────────────────── */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 1.25rem;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 20px 60px -20px rgba(0,0,0,0.6);
+    }
+
+    /* ── FORM ELEMENTS ──────────────────────────────────── */
+    .field {
+      margin-bottom: 1.1rem;
+    }
+
+    .field label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 0.4rem;
+      letter-spacing: 0.03em;
+    }
+
+    .field .hint {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 0.3rem;
+    }
+
+    .input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-wrap input,
+    .input-wrap select {
+      width: 100%;
+      padding: 0.7rem 1rem;
+      background: var(--bg-input);
+      border: 1.5px solid var(--border-bright);
+      border-radius: 0.6rem;
+      color: var(--text-primary);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    .input-wrap input:focus,
+    .input-wrap select:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(56,189,248,0.12);
+    }
+
+    .input-wrap input.has-btn {
+      padding-right: 3rem;
+    }
+
+    .input-wrap .btn-icon {
+      position: absolute;
+      right: 0.5rem;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 0.4rem;
+      border-radius: 0.4rem;
+      font-size: 1rem;
+      transition: color 0.2s;
+      line-height: 1;
+    }
+
+    .input-wrap .btn-icon:hover { color: var(--blue); }
+
+    select option { background: #1e293b; }
+
+    /* ── GRID LAYOUT ─────────────────────────────────────── */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+
+    @media (max-width: 540px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    }
+
+    /* ── BOOKMAKERS FILTER ───────────────────────────────── */
+    .bm-toggle-btn {
+      background: none;
+      border: 1.5px solid var(--border-bright);
+      border-radius: 0.6rem;
+      color: var(--text-secondary);
+      font-size: 0.82rem;
+      padding: 0.5rem 0.9rem;
+      cursor: pointer;
+      width: 100%;
+      text-align: left;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: border-color 0.2s, color 0.2s;
+    }
+
+    .bm-toggle-btn:hover { border-color: var(--blue); color: var(--blue); }
+
+    .bm-panel {
+      display: none;
+      margin-top: 0.75rem;
+      background: var(--bg-input);
+      border: 1.5px solid var(--border-bright);
+      border-radius: 0.6rem;
+      padding: 1rem;
+    }
+
+    .bm-panel.open { display: block; }
+
+    .bm-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .bm-label {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 0.3rem 0.5rem;
+      border-radius: 0.4rem;
+      transition: background 0.15s;
+    }
+
+    .bm-label:hover { background: rgba(255,255,255,0.04); }
+
+    .bm-label input[type="checkbox"] {
+      accent-color: var(--blue);
+      width: 14px;
+      height: 14px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .bm-label input[type="checkbox"]:checked + span { color: var(--text-primary); }
+
+    .bm-actions {
+      display: flex;
+      gap: 0.6rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .btn-sm {
+      font-size: 0.75rem;
+      padding: 0.3rem 0.7rem;
+      border-radius: 0.4rem;
+      cursor: pointer;
+      border: 1px solid var(--border-bright);
+      background: none;
+      color: var(--text-muted);
+      transition: all 0.15s;
+    }
+
+    .btn-sm:hover { border-color: var(--blue); color: var(--blue); }
+
+    /* ── ACTION BUTTONS ──────────────────────────────────── */
+    .btn-row {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-top: 0.25rem;
+    }
+
+    .btn-primary, .btn-secondary {
+      flex: 1;
+      min-width: 160px;
+      padding: 0.8rem 1.25rem;
+      border: none;
+      border-radius: 0.6rem;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.02em;
+      transition: opacity 0.2s, transform 0.1s, box-shadow 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .btn-primary {
+      background: var(--grad-btn);
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(56,189,248,0.2);
+    }
+
+    .btn-primary:hover { opacity: 0.88; box-shadow: 0 6px 20px rgba(56,189,248,0.3); }
+    .btn-primary:active { transform: scale(0.98); }
+
+    .btn-primary:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .btn-secondary {
+      background: var(--bg-input);
+      border: 1.5px solid var(--border-bright);
+      color: var(--text-secondary);
+    }
+
+    .btn-secondary:hover { border-color: var(--blue); color: var(--blue); }
+    .btn-secondary:active { transform: scale(0.98); }
+
+    /* ── SPINNER ─────────────────────────────────────────── */
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      flex-shrink: 0;
+    }
+
+    .spinner.blue {
+      border-color: rgba(56,189,248,0.3);
+      border-top-color: var(--blue);
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── QUOTA BAR ───────────────────────────────────────── */
+    #quota-bar {
+      display: none;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 0.875rem;
+      padding: 0.875rem 1.25rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    #quota-bar.visible { display: flex; }
+
+    .quota-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.82rem;
+    }
+
+    .quota-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .quota-dot.green { background: var(--green); box-shadow: 0 0 6px rgba(52,211,153,0.5); }
+    .quota-dot.amber { background: var(--amber); box-shadow: 0 0 6px rgba(251,191,36,0.5); }
+    .quota-dot.red   { background: var(--red);   box-shadow: 0 0 6px rgba(248,113,113,0.5); }
+
+    .quota-label { color: var(--text-muted); }
+    .quota-value { font-weight: 700; color: var(--text-primary); }
+
+    .quota-bar-fill {
+      flex: 1;
+      min-width: 120px;
+      height: 6px;
+      background: var(--border-bright);
+      border-radius: 9999px;
+      overflow: hidden;
+    }
+
+    .quota-bar-progress {
+      height: 100%;
+      border-radius: 9999px;
+      transition: width 0.5s ease;
+      background: linear-gradient(90deg, var(--green), var(--blue));
+    }
+
+    /* ── ALERT / ERROR ───────────────────────────────────── */
+    .alert {
+      border-radius: 0.75rem;
+      padding: 0.875rem 1.1rem;
+      font-size: 0.88rem;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.65rem;
+      line-height: 1.5;
+    }
+
+    .alert-icon { flex-shrink: 0; font-size: 1rem; margin-top: 0.05rem; }
+    .alert-body { flex: 1; }
+
+    .alert.error {
+      background: rgba(248,113,113,0.07);
+      border: 1px solid rgba(248,113,113,0.25);
+      color: #fca5a5;
+    }
+
+    .alert.info {
+      background: rgba(56,189,248,0.07);
+      border: 1px solid rgba(56,189,248,0.2);
+      color: #7dd3fc;
+    }
+
+    .alert.warning {
+      background: rgba(251,191,36,0.07);
+      border: 1px solid rgba(251,191,36,0.2);
+      color: #fde68a;
+    }
+
+    /* ── STATS BAR ───────────────────────────────────────── */
+    .stats-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .stat-pill {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 0.65rem 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 100px;
+    }
+
+    .stat-pill-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+
+    .stat-pill-value {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-top: 0.15rem;
+    }
+
+    .stat-pill-value.green { color: var(--green); }
+
+    /* ── EMPTY STATE ─────────────────────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 3.5rem 2rem;
+      color: var(--text-muted);
+    }
+
+    .empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+
+    .empty-state h3 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      margin-bottom: 0.6rem;
+    }
+
+    .empty-state p {
+      font-size: 0.88rem;
+      line-height: 1.7;
+      max-width: 420px;
+      margin: 0 auto;
+    }
+
+    /* ── SUREBET CARD ────────────────────────────────────── */
+    .surebet-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 1.25rem;
+      overflow: hidden;
+      margin-bottom: 1.25rem;
+      box-shadow: 0 20px 60px -20px rgba(0,0,0,0.5);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .surebet-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 28px 70px -15px rgba(0,0,0,0.7);
+    }
+
+    /* Card header */
+    .sc-header {
+      padding: 1.1rem 1.35rem 0.85rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sc-meta {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .sport-badge {
+      background: #1e293b;
+      color: var(--text-secondary);
+      font-size: 0.67rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0.18rem 0.6rem;
+      border-radius: 9999px;
+      border: 1px solid var(--border-bright);
+    }
+
+    .sc-date {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .sc-title {
+      font-size: clamp(0.95rem, 3vw, 1.2rem);
+      font-weight: 800;
+      color: var(--text-primary);
+      line-height: 1.3;
+    }
+
+    /* Profit banner */
+    .sc-profit {
+      background: var(--grad-green);
+      border-bottom: 1px solid #065f46;
+      padding: 0.875rem 1.35rem;
+      text-align: center;
+    }
+
+    .sc-profit-label {
+      font-size: 0.65rem;
+      font-weight: 800;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #6ee7b7;
+    }
+
+    .sc-profit-pct {
+      font-size: clamp(1.8rem, 5vw, 2.6rem);
+      font-weight: 900;
+      color: var(--green);
+      line-height: 1.05;
+      text-shadow: 0 0 24px rgba(52,211,153,0.35);
+    }
+
+    .sc-profit-sub {
+      font-size: 0.78rem;
+      color: #6ee7b7;
+      opacity: 0.75;
+      margin-top: 0.2rem;
+    }
+
+    /* Bets grid */
+    .sc-bets {
+      display: flex;
+      align-items: stretch;
+      padding: 1rem 0.75rem;
+      gap: 0.5rem;
+    }
+
+    .bet-block {
+      flex: 1;
+      border-radius: 0.875rem;
+      padding: 0.875rem;
+      text-align: center;
+      min-width: 0;
+    }
+
+    .bet-a {
+      background: linear-gradient(135deg, #0c1a3d, #0f2454);
+      border: 1px solid #1d4ed8;
+    }
+
+    .bet-b {
+      background: linear-gradient(135deg, #1a0c3d, #2a0f6b);
+      border: 1px solid #7c3aed;
+    }
+
+    .bet-side {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-bottom: 0.4rem;
+      line-height: 1.4;
+    }
+
+    .bet-player {
+      font-size: 0.88rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: 0.4rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .bet-bookmaker {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 0.5rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .bet-odds {
+      font-size: clamp(1.6rem, 5vw, 2.2rem);
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .bet-a .bet-odds { color: #60a5fa; }
+    .bet-b .bet-odds { color: #a78bfa; }
+
+    .bet-odds-label {
+      font-size: 0.62rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-top: 0.2rem;
+      font-weight: 600;
+    }
+
+    .bet-vs {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 900;
+      color: var(--border-bright);
+      letter-spacing: 0.05em;
+      min-width: 24px;
+    }
+
+    /* Per-card calculator */
+    .sc-calc {
+      border-top: 1px solid var(--border);
+      padding: 0.875rem 1.35rem;
+      background: rgba(0,0,0,0.15);
+    }
+
+    .sc-calc-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 0.65rem;
+    }
+
+    .sc-calc-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .sc-calc-input-wrap {
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .sc-calc-input-wrap::before {
+      content: '€';
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.9rem;
+      pointer-events: none;
+    }
+
+    .sc-calc-input {
+      width: 110px;
+      padding: 0.55rem 0.75rem 0.55rem 1.6rem;
+      background: var(--bg-input);
+      border: 1.5px solid var(--border-bright);
+      border-radius: 0.5rem;
+      color: var(--text-primary);
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .sc-calc-input:focus { border-color: var(--blue); }
+
+    .sc-calc-stakes {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      flex: 1;
+    }
+
+    .stake-pill {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-bright);
+      border-radius: 0.5rem;
+      padding: 0.45rem 0.75rem;
+      font-size: 0.82rem;
+      white-space: nowrap;
+    }
+
+    .stake-pill .s-label { color: var(--text-muted); font-size: 0.72rem; font-weight: 600; }
+    .stake-pill .s-value { color: var(--text-primary); font-weight: 800; margin-top: 0.1rem; }
+    .stake-pill .s-value.green { color: var(--green); }
+
+    /* Card warning */
+    .sc-warning {
+      background: rgba(146,64,14,0.12);
+      border-top: 1px solid rgba(146,64,14,0.25);
+      padding: 0.55rem 1.35rem;
+      font-size: 0.75rem;
+      color: #d97706;
+      text-align: center;
+    }
+
+    /* ── LOADING SKELETON ─────────────────────────────────── */
+    .skeleton {
+      background: linear-gradient(90deg, #1e293b 25%, #273548 50%, #1e293b 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.2s infinite;
+      border-radius: 0.5rem;
+    }
+
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    .skeleton-card {
+      height: 220px;
+      border-radius: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+
+    /* ── FOOTER ─────────────────────────────────────────── */
+    footer {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      padding: 1.5rem 1rem 2rem;
+      border-top: 1px solid var(--border);
+    }
+
+    footer a {
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+
+    footer a:hover { color: var(--blue); }
+
+    /* ── RESPONSIVE ─────────────────────────────────────── */
+    @media (max-width: 480px) {
+      .sc-bets { flex-direction: column; }
+      .bet-vs { transform: rotate(90deg); }
+      .btn-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── HEADER ─────────────────────────────────────────── -->
+  <header class="site-header">
+    <h1>📡 Radar de Surebets</h1>
+    <p class="tagline">Conectado a The Odds API · Detecta arbitrajes en tiempo real</p>
+  </header>
+
+  <main>
+
+    <!-- ── SECTION 1: CONFIGURACIÓN ──────────────────────── -->
+    <p class="section-label">⚙️ Configuración</p>
+    <div class="card">
+
+      <!-- API Key -->
+      <div class="field">
+        <label for="api-key">API Key de The Odds API</label>
+        <div class="input-wrap">
+          <input
+            type="password"
+            id="api-key"
+            class="has-btn"
+            placeholder="Introduce tu API Key…"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button class="btn-icon" id="toggle-key" title="Mostrar / Ocultar" aria-label="Mostrar API Key">👁</button>
+        </div>
+        <p class="hint">
+          Obtén tu clave gratuita en
+          <a href="https://the-odds-api.com/" target="_blank" rel="noopener noreferrer"
+             style="color:var(--blue);text-decoration:none;">the-odds-api.com</a>.
+          Se guarda en tu navegador automáticamente.
+        </p>
+      </div>
+
+      <!-- Step 1: Load sports -->
+      <div class="btn-row" style="margin-bottom:1.1rem;">
+        <button class="btn-secondary" id="btn-load-sports" onclick="loadSports()">
+          <span id="sports-btn-icon">🔄</span>
+          <span id="sports-btn-text">1. Cargar Deportes Disponibles</span>
+        </button>
+      </div>
+
+      <!-- Sport + Region -->
+      <div class="grid-2">
+        <div class="field" style="margin-bottom:0;">
+          <label for="sport-select">Deporte</label>
+          <div class="input-wrap">
+            <select id="sport-select" disabled>
+              <option value="">— Carga primero los deportes —</option>
+            </select>
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label for="region-select">Región de cuotas</label>
+          <div class="input-wrap">
+            <select id="region-select">
+              <option value="eu" selected>🇪🇺 Europa (EU)</option>
+              <option value="uk">🇬🇧 Reino Unido (UK)</option>
+              <option value="us">🇺🇸 Estados Unidos (US)</option>
+              <option value="au">🇦🇺 Australia (AU)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bookmakers filter -->
+      <div class="field" style="margin-top:1rem;">
+        <label>Filtro de Casas de Apuestas</label>
+        <button class="bm-toggle-btn" id="bm-toggle" onclick="toggleBmPanel()">
+          <span id="bm-toggle-label">Todas las casas (por defecto)</span>
+          <span id="bm-arrow">▼</span>
+        </button>
+        <div class="bm-panel" id="bm-panel">
+          <div class="bm-actions">
+            <button class="btn-sm" onclick="bmSelectAll(true)">✅ Seleccionar todas</button>
+            <button class="btn-sm" onclick="bmSelectAll(false)">☐ Deseleccionar todas</button>
+          </div>
+          <div class="bm-grid" id="bm-grid"></div>
+          <p class="hint" style="margin-top:0.6rem;">
+            Si no marcas ninguna, se usarán todas las casas disponibles.
+          </p>
+        </div>
+      </div>
+
+      <!-- Investment -->
+      <div class="field" style="margin-top:0.25rem;">
+        <label for="investment">Inversión por defecto (€) para la calculadora integrada</label>
+        <div class="input-wrap" style="max-width:200px;">
+          <input
+            type="number"
+            id="investment"
+            placeholder="Ej: 100"
+            min="1"
+            step="1"
+            value="100"
+          />
+        </div>
+      </div>
+
+      <!-- Step 2: Search -->
+      <div class="btn-row" style="margin-top:0.5rem;">
+        <button class="btn-primary" id="btn-search" onclick="searchSurebets()" disabled>
+          <span id="search-btn-icon">🎯</span>
+          <span id="search-btn-text">2. Buscar Surebets</span>
+        </button>
+      </div>
+
+    </div><!-- /.card -->
+
+    <!-- ── ALERTS ─────────────────────────────────────────── -->
+    <div id="alert-area"></div>
+
+    <!-- ── QUOTA BAR ──────────────────────────────────────── -->
+    <div id="quota-bar">
+      <div class="quota-item">
+        <div class="quota-dot" id="quota-dot"></div>
+        <span class="quota-label">Solicitudes usadas:</span>
+        <span class="quota-value" id="quota-used">—</span>
+      </div>
+      <div class="quota-item">
+        <span class="quota-label">Restantes:</span>
+        <span class="quota-value" id="quota-remaining">—</span>
+      </div>
+      <div class="quota-bar-fill">
+        <div class="quota-bar-progress" id="quota-progress" style="width:100%;"></div>
+      </div>
+      <div class="quota-item">
+        <span class="quota-label" id="quota-ts" style="font-size:0.72rem;"></span>
+      </div>
+    </div>
+
+    <!-- ── SECTION 2: RESULTS ─────────────────────────────── -->
+    <div id="results-section" style="display:none;">
+
+      <p class="section-label" id="results-label">🎯 Resultados</p>
+
+      <!-- Stats bar -->
+      <div class="stats-bar" id="stats-bar"></div>
+
+      <!-- Cards container -->
+      <div id="cards-container"></div>
+
+    </div>
+
+  </main>
+
+  <footer>
+    Radar de Surebets &copy; 2025 —
+    Datos proporcionados por <a href="https://the-odds-api.com/" target="_blank" rel="noopener noreferrer">The Odds API</a>.
+    Solo con fines informativos. Apuesta con responsabilidad.
+  </footer>
+
+  <script>
+    /* ── CONSTANTS ──────────────────────────────────────── */
+    const BASE_URL = 'https://api.the-odds-api.com/v4';
+
+    const BOOKMAKERS_LIST = [
+      { key: 'bet365',       label: 'Bet365' },
+      { key: 'pinnacle',     label: 'Pinnacle' },
+      { key: 'unibet_eu',    label: 'Unibet EU' },
+      { key: 'bwin',         label: 'bwin' },
+      { key: 'williamhill',  label: 'William Hill' },
+      { key: 'betfair_ex_eu',label: 'Betfair EU' },
+      { key: '1xbet',        label: '1xBet' },
+      { key: 'betway',       label: 'Betway' },
+      { key: 'betsson',      label: 'Betsson' },
+      { key: 'marathonbet',  label: 'Marathonbet' },
+      { key: 'coral',        label: 'Coral' },
+      { key: 'ladbrokes_eu', label: 'Ladbrokes EU' },
+      { key: 'sportsbet',    label: 'Sportsbet' },
+      { key: 'mybookie_ag',  label: 'MyBookie' },
+      { key: 'draftkings',   label: 'DraftKings' },
+      { key: 'fanduel',      label: 'FanDuel' },
+    ];
+
+    /* ── STATE ──────────────────────────────────────────── */
+    let allSurebets   = [];
+    let lastQuotaData = null;
+
+    /* ── DOM HELPERS ────────────────────────────────────── */
+    const $  = id => document.getElementById(id);
+    const q  = sel => document.querySelector(sel);
+
+    /* ── INIT ───────────────────────────────────────────── */
+    document.addEventListener('DOMContentLoaded', () => {
+      buildBmGrid();
+      restoreApiKey();
+      $('api-key').addEventListener('input', saveApiKey);
+      $('toggle-key').addEventListener('click', toggleKeyVisibility);
+      document.addEventListener('change', e => {
+        if (e.target.closest('#bm-grid')) updateBmLabel();
+      });
+    });
+
+    /* ── API KEY PERSISTENCE ────────────────────────────── */
+    function saveApiKey() {
+      const key = $('api-key').value.trim();
+      if (key) localStorage.setItem('odds_api_key', key);
+      else localStorage.removeItem('odds_api_key');
+    }
+
+    function restoreApiKey() {
+      const stored = localStorage.getItem('odds_api_key');
+      if (stored) $('api-key').value = stored;
+    }
+
+    function getApiKey() {
+      return $('api-key').value.trim();
+    }
+
+    function toggleKeyVisibility() {
+      const input = $('api-key');
+      const isPassword = input.type === 'password';
+      input.type = isPassword ? 'text' : 'password';
+      $('toggle-key').textContent = isPassword ? '🔒' : '👁';
+    }
+
+    /* ── BOOKMAKERS GRID ────────────────────────────────── */
+    function buildBmGrid() {
+      const grid = $('bm-grid');
+      BOOKMAKERS_LIST.forEach(bm => {
+        const lbl = document.createElement('label');
+        lbl.className = 'bm-label';
+        lbl.innerHTML = `
+          <input type="checkbox" value="${bm.key}" />
+          <span>${bm.label}</span>
+        `;
+        grid.appendChild(lbl);
+      });
+    }
+
+    function toggleBmPanel() {
+      const panel = $('bm-panel');
+      const arrow = $('bm-arrow');
+      const isOpen = panel.classList.toggle('open');
+      arrow.textContent = isOpen ? '▲' : '▼';
+    }
+
+    function bmSelectAll(checked) {
+      $('bm-grid').querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        cb.checked = checked;
+      });
+      updateBmLabel();
+    }
+
+    function getSelectedBookmakers() {
+      return Array.from(
+        $('bm-grid').querySelectorAll('input[type="checkbox"]:checked')
+      ).map(cb => cb.value);
+    }
+
+    function updateBmLabel() {
+      const selected = getSelectedBookmakers();
+      $('bm-toggle-label').textContent = selected.length === 0
+        ? 'Todas las casas (por defecto)'
+        : `${selected.length} casa${selected.length > 1 ? 's' : ''} seleccionada${selected.length > 1 ? 's' : ''}`;
+    }
+
+    /* ── ALERTS ─────────────────────────────────────────── */
+    function showAlert(type, message) {
+      const icons = { error: '⛔', info: 'ℹ️', warning: '⚠️' };
+      $('alert-area').innerHTML = `
+        <div class="alert ${type}">
+          <span class="alert-icon">${icons[type] || 'ℹ️'}</span>
+          <span class="alert-body">${message}</span>
+        </div>
+      `;
+    }
+
+    function clearAlert() {
+      $('alert-area').innerHTML = '';
+    }
+
+    /* ── QUOTA BAR ──────────────────────────────────────── */
+    function updateQuotaBar(used, remaining) {
+      const bar = $('quota-bar');
+      if (used === null && remaining === null) return;
+
+      $('quota-used').textContent      = used      ?? '—';
+      $('quota-remaining').textContent = remaining ?? '—';
+
+      const total = (used ?? 0) + (remaining ?? 500);
+      const pct   = total > 0 ? Math.max(0, Math.min(100, ((remaining ?? 0) / total) * 100)) : 100;
+
+      $('quota-progress').style.width = pct + '%';
+
+      const dot = $('quota-dot');
+      dot.className = 'quota-dot';
+      if (pct > 50) dot.classList.add('green');
+      else if (pct > 15) dot.classList.add('amber');
+      else dot.classList.add('red');
+
+      $('quota-ts').textContent = `Actualizado: ${new Date().toLocaleTimeString('es-ES')}`;
+      bar.classList.add('visible');
+    }
+
+    /* ── LOAD SPORTS ─────────────────────────────────────── */
+    async function loadSports() {
+      const apiKey = getApiKey();
+      if (!apiKey) {
+        showAlert('error', 'Introduce tu API Key antes de cargar los deportes.');
+        return;
+      }
+
+      clearAlert();
+      setBtnLoading('btn-load-sports', 'sports-btn-icon', 'sports-btn-text', true, 'Cargando deportes…');
+
+      try {
+        const res = await fetch(`${BASE_URL}/sports/?apiKey=${encodeURIComponent(apiKey)}`);
+        handleQuotaHeaders(res.headers);
+
+        if (res.status === 401) throw new Error('API Key inválida o no autorizada. Verifica tu clave.');
+        if (res.status === 429) throw new Error('Límite de solicitudes alcanzado. Espera unos minutos.');
+        if (!res.ok) throw new Error(`Error HTTP ${res.status}. Inténtalo de nuevo.`);
+
+        const sports = await res.json();
+        if (!Array.isArray(sports) || sports.length === 0) {
+          throw new Error('No se recibieron deportes de la API. Comprueba tu plan.');
+        }
+
+        populateSportSelect(sports);
+        showAlert('info', `✅ ${sports.length} deportes cargados correctamente. Selecciona uno y pulsa "Buscar Surebets".`);
+
+      } catch (err) {
+        showAlert('error', err.message || 'Error al cargar deportes. Verifica tu conexión.');
+      } finally {
+        setBtnLoading('btn-load-sports', 'sports-btn-icon', 'sports-btn-text', false, '1. Cargar Deportes Disponibles', '🔄');
+      }
+    }
+
+    function populateSportSelect(sports) {
+      const sel = $('sport-select');
+      sel.innerHTML = '<option value="">— Elige un deporte —</option>';
+
+      // Group active sports first
+      const active   = sports.filter(s => s.active);
+      const inactive = sports.filter(s => !s.active);
+
+      if (active.length) {
+        const grp = document.createElement('optgroup');
+        grp.label = '🟢 Deportes activos';
+        active.forEach(s => grp.appendChild(makeOption(s)));
+        sel.appendChild(grp);
+      }
+      if (inactive.length) {
+        const grp = document.createElement('optgroup');
+        grp.label = '⚪ Fuera de temporada';
+        inactive.forEach(s => grp.appendChild(makeOption(s)));
+        sel.appendChild(grp);
+      }
+
+      sel.disabled = false;
+      sel.addEventListener('change', onSportChange);
+    }
+
+    function makeOption(sport) {
+      const opt = document.createElement('option');
+      opt.value = sport.key;
+      opt.textContent = sport.title + (sport.description ? ` — ${sport.description}` : '');
+      return opt;
+    }
+
+    function onSportChange() {
+      const hasValue = !!$('sport-select').value;
+      $('btn-search').disabled = !hasValue;
+    }
+
+    /* ── SEARCH SUREBETS ─────────────────────────────────── */
+    async function searchSurebets() {
+      const apiKey = getApiKey();
+      if (!apiKey) { showAlert('error', 'Introduce tu API Key.'); return; }
+
+      const sport  = $('sport-select').value;
+      if (!sport)  { showAlert('error', 'Selecciona un deporte de la lista.'); return; }
+
+      const region = $('region-select').value || 'eu';
+
+      clearAlert();
+      showLoading();
+      setBtnLoading('btn-search', 'search-btn-icon', 'search-btn-text', true, 'Buscando surebets…');
+
+      try {
+        const url = `${BASE_URL}/sports/${encodeURIComponent(sport)}/odds?` +
+          `apiKey=${encodeURIComponent(apiKey)}` +
+          `&regions=${encodeURIComponent(region)}` +
+          `&markets=h2h` +
+          `&oddsFormat=decimal`;
+
+        const res = await fetch(url);
+        handleQuotaHeaders(res.headers);
+
+        if (res.status === 401) throw new Error('API Key inválida o no autorizada.');
+        if (res.status === 422) throw new Error(`El deporte seleccionado no está disponible en tu plan.`);
+        if (res.status === 429) throw new Error('Límite de solicitudes alcanzado. Espera antes de reintentar.');
+        if (!res.ok) throw new Error(`Error HTTP ${res.status}.`);
+
+        const events = await res.json();
+        const selectedBm = getSelectedBookmakers();
+        allSurebets = detectSurebets(events, selectedBm);
+        renderResults(allSurebets, sport, events.length);
+
+      } catch (err) {
+        showAlert('error', err.message || 'Error al buscar surebets.');
+        hideResults();
+      } finally {
+        setBtnLoading('btn-search', 'search-btn-icon', 'search-btn-text', false, '2. Buscar Surebets', '🎯');
+      }
+    }
+
+    /* ── ARBITRAGE MATH ──────────────────────────────────── */
+    function detectSurebets(events, bmFilter) {
+      const results = [];
+
+      for (const event of events) {
+        const bookmakers = event.bookmakers || [];
+        if (!bookmakers.length) continue;
+
+        const best = bestOddsPerOutcome(bookmakers, bmFilter);
+
+        // Only H2H markets with exactly 2 outcomes
+        if (Object.keys(best).length !== 2) continue;
+
+        const [nameA, dataA] = Object.entries(best)[0];
+        const [nameB, dataB] = Object.entries(best)[1];
+
+        const p = (1 / dataA.odds) + (1 / dataB.odds);
+
+        if (p < 1) {
+          const profitPct = round2((1 / p - 1) * 100);
+          results.push({
+            homeTeam:    event.home_team     || 'Equipo Local',
+            awayTeam:    event.away_team     || 'Equipo Visitante',
+            commenceTime:event.commence_time || '',
+            sportTitle:  event.sport_title   || '',
+            p:           p,
+            profitPct:   profitPct,
+            a: { name: nameA, odds: dataA.odds, bookmaker: dataA.bookmaker },
+            b: { name: nameB, odds: dataB.odds, bookmaker: dataB.bookmaker },
+          });
+        }
+      }
+
+      results.sort((x, y) => y.profitPct - x.profitPct);
+      return results;
+    }
+
+    function bestOddsPerOutcome(bookmakers, bmFilter) {
+      const best = {};
+
+      for (const bm of bookmakers) {
+        const key  = bm.key   || '';
+        const name = bm.title || bm.key || 'Desconocida';
+
+        if (bmFilter && bmFilter.length > 0 && !bmFilter.includes(key)) continue;
+
+        for (const market of (bm.markets || [])) {
+          if (market.key !== 'h2h') continue;
+          for (const outcome of (market.outcomes || [])) {
+            const oName  = outcome.name;
+            const oPrice = outcome.price;
+            if (!best[oName] || oPrice > best[oName].odds) {
+              best[oName] = { odds: oPrice, bookmaker: name };
+            }
+          }
+        }
+      }
+
+      return best;
+    }
+
+    function round2(v) { return Math.round(v * 100) / 100; }
+
+    function calcStakes(investment, oddsA, oddsB) {
+      const p      = (1 / oddsA) + (1 / oddsB);
+      const stakeA = round2(investment / (p * oddsA));
+      const stakeB = round2(investment / (p * oddsB));
+      const retA   = round2(stakeA * oddsA);
+      const retB   = round2(stakeB * oddsB);
+      const inv    = round2(stakeA + stakeB);
+      const netA   = round2(retA - inv);
+      const netB   = round2(retB - inv);
+      return { stakeA, stakeB, retA, retB, inv, netA, netB, guaranteedProfit: Math.min(netA, netB) };
+    }
+
+    /* ── QUOTA HEADERS ───────────────────────────────────── */
+    function handleQuotaHeaders(headers) {
+      const used      = parseInt(headers.get('x-requests-used'))      || null;
+      const remaining = parseInt(headers.get('x-requests-remaining')) || null;
+      updateQuotaBar(used, remaining);
+    }
+
+    /* ── RENDER ──────────────────────────────────────────── */
+    function renderResults(surebets, sport, totalEvents) {
+      const section    = $('results-section');
+      const statsBar   = $('stats-bar');
+      const container  = $('cards-container');
+      const label      = $('results-label');
+      const investment = parseFloat($('investment').value) || 100;
+
+      const now      = new Date();
+      const timeStr  = now.toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' });
+      const sportName = $('sport-select').options[$('sport-select').selectedIndex]?.text?.split(' —')[0] || sport;
+
+      // Stats bar
+      statsBar.innerHTML = `
+        <div class="stat-pill">
+          <div class="stat-pill-label">Surebets</div>
+          <div class="stat-pill-value green">${surebets.length}</div>
+        </div>
+        <div class="stat-pill">
+          <div class="stat-pill-label">Eventos analizados</div>
+          <div class="stat-pill-value">${totalEvents}</div>
+        </div>
+        <div class="stat-pill">
+          <div class="stat-pill-label">Deporte</div>
+          <div class="stat-pill-value" style="font-size:0.85rem;">${esc(sportName)}</div>
+        </div>
+        <div class="stat-pill">
+          <div class="stat-pill-label">Actualizado</div>
+          <div class="stat-pill-value" style="font-size:0.9rem;">${timeStr}</div>
+        </div>
+      `;
+
+      // Results label
+      const n = surebets.length;
+      label.textContent = n > 0
+        ? `🎯 ${n} surebet${n !== 1 ? 's' : ''} detectada${n !== 1 ? 's' : ''}`
+        : '🎯 Resultados';
+
+      // Cards or empty state
+      if (surebets.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">🔍</div>
+            <h3>Sin surebets detectadas</h3>
+            <p>
+              No se encontraron oportunidades de arbitraje para <strong>${esc(sportName)}</strong>
+              con las casas de apuestas actuales.<br><br>
+              Prueba a cambiar de deporte, ampliar el filtro de bookmakers o inténtalo más tarde.
+            </p>
+          </div>
+        `;
+      } else {
+        container.innerHTML = surebets.map((sb, idx) => buildCard(sb, investment, idx)).join('');
+        // Attach live-update listeners for per-card calculators
+        container.querySelectorAll('.sc-calc-input').forEach(input => {
+          input.addEventListener('input', () => updateCardCalc(input));
+        });
+      }
+
+      section.style.display = 'block';
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function buildCard(sb, defaultInvestment, idx) {
+      const stakes   = calcStakes(defaultInvestment, sb.a.odds, sb.b.odds);
+      const dateStr  = formatDate(sb.commenceTime);
+
+      return `
+        <div class="surebet-card">
+
+          <div class="sc-header">
+            <div class="sc-meta">
+              <span class="sport-badge">${esc(sb.sportTitle || 'Sport')}</span>
+              <span class="sc-date">🗓 ${esc(dateStr)}</span>
+            </div>
+            <div class="sc-title">⚡ ${esc(sb.homeTeam)} <span style="color:var(--text-muted);font-weight:400;">vs</span> ${esc(sb.awayTeam)}</div>
+          </div>
+
+          <div class="sc-profit">
+            <div class="sc-profit-label">✅ Beneficio Garantizado</div>
+            <div class="sc-profit-pct">+${sb.profitPct.toLocaleString('es-ES', {minimumFractionDigits:2,maximumFractionDigits:2})}%</div>
+            <div class="sc-profit-sub">Probabilidad total: ${(sb.p * 100).toFixed(2)}%</div>
+          </div>
+
+          <div class="sc-bets">
+            <div class="bet-block bet-a">
+              <div class="bet-side">Apuesta 1</div>
+              <div class="bet-player">${esc(sb.a.name)}</div>
+              <div class="bet-bookmaker">🏠 ${esc(sb.a.bookmaker)}</div>
+              <div class="bet-odds">${sb.a.odds.toFixed(2)}</div>
+              <div class="bet-odds-label">cuota</div>
+            </div>
+            <div class="bet-vs">VS</div>
+            <div class="bet-block bet-b">
+              <div class="bet-side">Apuesta 2</div>
+              <div class="bet-player">${esc(sb.b.name)}</div>
+              <div class="bet-bookmaker">🏠 ${esc(sb.b.bookmaker)}</div>
+              <div class="bet-odds">${sb.b.odds.toFixed(2)}</div>
+              <div class="bet-odds-label">cuota</div>
+            </div>
+          </div>
+
+          <div class="sc-calc">
+            <div class="sc-calc-title">🧮 Calculadora de Stakes</div>
+            <div class="sc-calc-row">
+              <div class="sc-calc-input-wrap">
+                <input
+                  class="sc-calc-input"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value="${defaultInvestment}"
+                  data-odds-a="${sb.a.odds}"
+                  data-odds-b="${sb.b.odds}"
+                  data-name-a="${esc(sb.a.name)}"
+                  data-name-b="${esc(sb.b.name)}"
+                  title="Inversión total"
+                />
+              </div>
+              <div class="sc-calc-stakes" id="stakes-${idx}">
+                ${renderStakePills(sb.a.name, sb.b.name, stakes)}
+              </div>
+            </div>
+          </div>
+
+          <div class="sc-warning">
+            ⚠️ Las cuotas pueden cambiar en cualquier momento. Verifica antes de apostar.
+          </div>
+
+        </div>
+      `;
+    }
+
+    function renderStakePills(nameA, nameB, stakes) {
+      return `
+        <div class="stake-pill">
+          <div class="s-label">${esc(nameA)}</div>
+          <div class="s-value">${fmtEuro(stakes.stakeA)}</div>
+        </div>
+        <div class="stake-pill">
+          <div class="s-label">${esc(nameB)}</div>
+          <div class="s-value">${fmtEuro(stakes.stakeB)}</div>
+        </div>
+        <div class="stake-pill">
+          <div class="s-label">Beneficio mín.</div>
+          <div class="s-value green">${fmtEuro(stakes.guaranteedProfit)}</div>
+        </div>
+      `;
+    }
+
+    function updateCardCalc(input) {
+      const investment = parseFloat(input.value) || 0;
+      const oddsA      = parseFloat(input.dataset.oddsA);
+      const oddsB      = parseFloat(input.dataset.oddsB);
+      const nameA      = input.dataset.nameA;
+      const nameB      = input.dataset.nameB;
+
+      if (!investment || investment <= 0 || !oddsA || !oddsB) return;
+
+      const stakes    = calcStakes(investment, oddsA, oddsB);
+      const pillsEl   = input.closest('.sc-calc-row').querySelector('.sc-calc-stakes');
+      if (pillsEl) pillsEl.innerHTML = renderStakePills(nameA, nameB, stakes);
+    }
+
+    /* ── LOADING / HIDE ──────────────────────────────────── */
+    function showLoading() {
+      const section   = $('results-section');
+      const label     = $('results-label');
+      const statsBar  = $('stats-bar');
+      const container = $('cards-container');
+
+      label.textContent = '⏳ Buscando surebets…';
+      statsBar.innerHTML = '';
+      container.innerHTML = `
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card" style="height:160px;"></div>
+      `;
+      section.style.display = 'block';
+    }
+
+    function hideResults() {
+      $('results-section').style.display = 'none';
+    }
+
+    /* ── BUTTON STATES ───────────────────────────────────── */
+    function setBtnLoading(btnId, iconId, textId, loading, text, iconDefault) {
+      const btn = $(btnId);
+      const iconEl = $(iconId);
+      const textEl = $(textId);
+      btn.disabled = loading;
+      textEl.textContent = text;
+      if (loading) {
+        iconEl.outerHTML = '<span class="spinner" id="' + iconId + '"></span>';
+      } else {
+        const spinner = $(iconId);
+        if (spinner) spinner.outerHTML = '<span id="' + iconId + '">' + (iconDefault || '') + '</span>';
+      }
+    }
+
+    /* ── UTILS ───────────────────────────────────────────── */
+    function fmtEuro(value) {
+      return value.toLocaleString('es-ES', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }) + ' €';
+    }
+
+    function formatDate(iso) {
+      if (!iso) return 'Fecha no disponible';
+      try {
+        const dt  = new Date(iso);
+        const opt = { weekday:'short', day:'numeric', month:'short', year:'numeric',
+                      hour:'2-digit', minute:'2-digit', timeZoneName:'short' };
+        return dt.toLocaleString('es-ES', opt);
+      } catch (_) { return iso; }
+    }
+
+    function esc(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+  </script>
+
+</body>
+</html>

@@ -46,6 +46,30 @@ Luego abre `http://localhost:8080` en tu navegador.
 
 ---
 
+## 📡 Radar de Surebets (Aplicación Web)
+
+El archivo `radar_surebets.html` es una **aplicación web de una sola página** que se conecta directamente a [The Odds API](https://the-odds-api.com/) desde el navegador, detecta oportunidades de arbitraje en tiempo real y muestra los resultados con una calculadora de stakes integrada.
+
+### ¿Cómo abro la aplicación web?
+
+1. Abre `radar_surebets.html` directamente en tu navegador (doble clic o `xdg-open`).
+2. Introduce tu **API Key** de [The Odds API](https://the-odds-api.com/) (se guarda automáticamente en el navegador).
+3. Pulsa **"1. Cargar Deportes Disponibles"** para poblar el selector de deportes.
+4. Selecciona el **deporte**, la **región** y, opcionalmente, filtra las casas de apuestas.
+5. Pulsa **"2. Buscar Surebets"** para obtener los resultados.
+
+### Características
+
+- 🌙 **Dark Mode** premium y responsivo.
+- 🔑 La API Key se guarda en `localStorage` automáticamente.
+- 📊 Indicador de cuota de solicitudes (requests usados / restantes) en tiempo real.
+- 🧮 **Calculadora de stakes integrada** en cada tarjeta: introduce tu inversión y obtén al instante cuánto apostar en cada casa.
+- 🏷️ Filtro de casas de apuestas (Bet365, Pinnacle, Unibet, bwin, Betfair, 1xBet…).
+- ⚡ Soporte para múltiples regiones (EU, UK, US, AU).
+- 🚦 Control de errores completo (API Key inválida, límite de solicitudes, etc.).
+
+---
+
 ## 📡 Radar de Surebets (script Python)
 
 El archivo `radar_surebets.py` se conecta a [The Odds API](https://the-odds-api.com/) (plan gratuito), detecta oportunidades de arbitraje en tiempo real y genera automáticamente el archivo `radar_resultados.html` con un diseño *dark mode* premium.
