@@ -46,6 +46,47 @@ Luego abre `http://localhost:8080` en tu navegador.
 
 ---
 
+## 📡 Radar de Surebets (script Python)
+
+El archivo `radar_surebets.py` se conecta a [The Odds API](https://the-odds-api.com/) (plan gratuito), detecta oportunidades de arbitraje en tiempo real y genera automáticamente el archivo `radar_resultados.html` con un diseño *dark mode* premium.
+
+### Requisitos
+
+```bash
+pip install requests
+```
+
+### Configuración
+
+Edita las siguientes variables al inicio de `radar_surebets.py`:
+
+| Variable | Descripción | Valor por defecto |
+|---|---|---|
+| `API_KEY` | Tu clave de The Odds API | `"TU_API_KEY_AQUI"` |
+| `SPORT` | Deporte a analizar | `"tennis_atp"` |
+| `BOOKMAKERS_FILTER` | Lista de bookmakers a incluir | bwin, betfair, 1xbet… |
+
+Obtén tu API Key gratuita en [https://the-odds-api.com/](https://the-odds-api.com/).
+
+### Uso
+
+```bash
+python3 radar_surebets.py
+```
+
+El script imprimirá las surebets encontradas en la consola y generará `radar_resultados.html` que puedes abrir directamente en tu navegador.
+
+### Deportes disponibles (ejemplos)
+
+- `tennis_atp` — ATP Tennis
+- `basketball_nba` — NBA Basketball
+- `americanfootball_nfl` — NFL American Football
+- `soccer_epl` — English Premier League
+
+> **Aviso:** Las cuotas cambian constantemente. Verifica siempre los valores antes de apostar. Este software tiene fines informativos.
+
+---
+
 ## ¿Cómo uso la calculadora?
 
 1. Introduce la **Cuota de la Casa 1** (ejemplo: `2.60`).
