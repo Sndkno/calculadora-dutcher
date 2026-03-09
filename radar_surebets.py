@@ -1,19 +1,30 @@
 """
 Radar de Surebets — The Odds API
 =================================
-Conecta a The Odds API, detecta oportunidades de arbitraje (surebets)
-y genera automáticamente el archivo 'radar_resultados.html'.
+Conecta a The Odds API, detecta oportunidades de arbitraje (surebets).
 
-Uso:
-    python3 radar_surebets.py
+Modos de uso:
+  Servidor web (recomendado, evita errores CORS):
+      python3 radar_surebets.py
+  Abre http://localhost:8765 en tu navegador.
+
+  Generar HTML estático (modo anterior):
+      python3 radar_surebets.py --generate
 
 Requisitos:
     pip install requests
 """
 
+import os
 import sys
 import html as html_module
+import threading
+import webbrowser
 from datetime import datetime, timezone
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from urllib.parse import urlparse
+from urllib.request import urlopen, Request
+from urllib.error import URLError, HTTPError
 import requests
 
 # ─── CONFIGURACIÓN ────────────────────────────────────────────────────────────
@@ -44,7 +55,107 @@ BASE_URL = "https://api.the-odds-api.com/v4/sports/{sport}/odds"
 # Nombre del archivo HTML de salida
 OUTPUT_FILE = "radar_resultados.html"
 
-# ─── LÓGICA DE ARBITRAJE ──────────────────────────────────────────────────────
+# ─── SERVIDOR WEB / PROXY ─────────────────────────────────────────────────────
+
+# Puerto del servidor local
+SERVER_PORT = 8765
+
+# Retardo (segundos) antes de abrir el navegador; da tiempo al servidor a arrancar
+BROWSER_OPEN_DELAY = 0.8
+
+# Host de The Odds API (para el proxy)
+ODDS_API_HOST = "https://api.the-odds-api.com"
+
+# Directorio donde vive este script (para encontrar radar_surebets.html)
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+class _ProxyHandler(BaseHTTPRequestHandler):
+    """Servidor HTTP ligero: sirve radar_surebets.html y proxifica /v4/* hacia
+    The Odds API, añadiendo cabeceras CORS para evitar errores en el navegador."""
+
+    def log_message(self, fmt, *args):  # noqa: inherited signature
+        pass  # Silencia el log de acceso en consola
+
+    def do_GET(self):
+        parsed = urlparse(self.path)
+        path = parsed.path
+
+        if path in ('/', '/radar_surebets.html'):
+            self._serve_html()
+        elif path.startswith('/v4/'):
+            self._proxy(f"{ODDS_API_HOST}{self.path}")
+        else:
+            self.send_error(404, "Ruta no encontrada")
+
+    def _serve_html(self):
+        html_path = os.path.join(SCRIPT_DIR, "radar_surebets.html")
+        try:
+            with open(html_path, 'rb') as fh:
+                data = fh.read()
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.send_header('Content-Length', str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+        except OSError:
+            self.send_error(500, "No se encontró radar_surebets.html")
+
+    def _proxy(self, url):
+        try:
+            req = Request(url, headers={
+                'Accept': 'application/json',
+                'User-Agent': 'RadarSurebets/1.0',
+            })
+            with urlopen(req, timeout=20) as resp:
+                body = resp.read()
+                self.send_response(resp.status)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                for hdr in ('x-requests-remaining', 'x-requests-used'):
+                    val = resp.headers.get(hdr)
+                    if val:
+                        self.send_header(hdr, val)
+                self.end_headers()
+                self.wfile.write(body)
+        except HTTPError as exc:
+            body = exc.read()
+            self.send_response(exc.code)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(body)
+        except (URLError, OSError):
+            self.send_response(503)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(b'{"error": "No se pudo conectar con The Odds API"}')
+
+
+def run_server(port: int = SERVER_PORT) -> None:
+    """Inicia el servidor proxy local y abre el navegador automáticamente."""
+    try:
+        httpd = HTTPServer(('localhost', port), _ProxyHandler)
+    except OSError:
+        print(f"❌  El puerto {port} ya está en uso. "
+              f"Cierra otra instancia del servidor o cambia SERVER_PORT.")
+        sys.exit(1)
+
+    url = f"http://localhost:{port}"
+    print(f"\n📡  Radar de Surebets — Servidor local iniciado")
+    print(f"    🌐  Abriendo: {url}")
+    print(f"    Presiona Ctrl+C para detener el servidor.\n")
+
+    threading.Timer(BROWSER_OPEN_DELAY, lambda: webbrowser.open(url)).start()
+
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        print("\n🛑  Servidor detenido.")
+        httpd.shutdown()
+
+
 
 
 def fetch_odds():
@@ -620,38 +731,49 @@ def generate_html(surebets: list, generated_at: str, year: int) -> str:
 # ─── PUNTO DE ENTRADA ─────────────────────────────────────────────────────────
 
 def main():
-    print(f"🔍  Consultando cuotas para '{SPORT}' en The Odds API…")
+    # ── Modo servidor (predeterminado) ────────────────────────────────────────
+    # Ejecutar sin argumentos inicia el servidor proxy local y abre el navegador.
+    # Pasar --generate (o -g) usa el comportamiento original: genera
+    # radar_resultados.html con la API Key y el deporte configurados arriba.
 
-    if API_KEY == "TU_API_KEY_AQUI":
-        print("⚠️  No has configurado tu API_KEY. "
-              "Edita la variable API_KEY al inicio del script.")
-        sys.exit(1)
+    if "--generate" in sys.argv or "-g" in sys.argv:
+        # Modo generación de HTML estático (comportamiento original)
+        print(f"🔍  Consultando cuotas para '{SPORT}' en The Odds API…")
 
-    events = fetch_odds()
+        if API_KEY == "TU_API_KEY_AQUI":
+            print("⚠️  No has configurado tu API_KEY. "
+                  "Edita la variable API_KEY al inicio del script.")
+            sys.exit(1)
 
-    if not events:
-        print("ℹ️  No hay eventos disponibles en este momento.")
+        events = fetch_odds()
 
-    surebets = detect_surebets(events)
+        if not events:
+            print("ℹ️  No hay eventos disponibles en este momento.")
 
-    if surebets:
-        print(f"\n✅  {len(surebets)} surebet(s) detectada(s):")
-        for sb in surebets:
-            print(f"   • {sb['home_team']} vs {sb['away_team']} "
-                  f"→ +{sb['profit_pct']:.2f}%  "
-                  f"({sb['outcome_a']['bookmaker']} {sb['outcome_a']['odds']} / "
-                  f"{sb['outcome_b']['bookmaker']} {sb['outcome_b']['odds']})")
+        surebets = detect_surebets(events)
+
+        if surebets:
+            print(f"\n✅  {len(surebets)} surebet(s) detectada(s):")
+            for sb in surebets:
+                print(f"   • {sb['home_team']} vs {sb['away_team']} "
+                      f"→ +{sb['profit_pct']:.2f}%  "
+                      f"({sb['outcome_a']['bookmaker']} {sb['outcome_a']['odds']} / "
+                      f"{sb['outcome_b']['bookmaker']} {sb['outcome_b']['odds']})")
+        else:
+            print("\nℹ️  No se detectaron surebets en este momento.")
+
+        now = datetime.now(timezone.utc)
+        generated_at = now.strftime("%d/%m/%Y %H:%M UTC")
+        html_content = generate_html(surebets, generated_at, now.year)
+
+        with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+            f.write(html_content)
+
+        print(f"\n📄  Archivo generado: {OUTPUT_FILE}")
+
     else:
-        print("\nℹ️  No se detectaron surebets en este momento.")
-
-    now = datetime.now(timezone.utc)
-    generated_at = now.strftime("%d/%m/%Y %H:%M UTC")
-    html_content = generate_html(surebets, generated_at, now.year)
-
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        f.write(html_content)
-
-    print(f"\n📄  Archivo generado: {OUTPUT_FILE}")
+        # Modo servidor (predeterminado): sirve radar_surebets.html con proxy
+        run_server()
 
 
 if __name__ == "__main__":

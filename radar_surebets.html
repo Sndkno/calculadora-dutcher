@@ -923,7 +923,15 @@
 
   <script>
     /* ── CONSTANTS ──────────────────────────────────────── */
-    const BASE_URL = 'https://api.the-odds-api.com/v4';
+    // When served via the local Python server (localhost), use relative URLs so
+    // requests go through the built-in proxy — this avoids CORS errors that
+    // occur when the file is opened directly with the file:// protocol.
+    const isLocalServer = (window.location.hostname === 'localhost' ||
+                           window.location.hostname === '127.0.0.1') &&
+                          window.location.protocol !== 'file:';
+    const BASE_URL = isLocalServer
+      ? `${window.location.protocol}//${window.location.host}/v4`
+      : 'https://api.the-odds-api.com/v4';
 
     const BOOKMAKERS_LIST = [
       { key: 'bet365',       label: 'Bet365' },
@@ -961,6 +969,15 @@
       document.addEventListener('change', e => {
         if (e.target.closest('#bm-grid')) updateBmLabel();
       });
+
+      // Aviso cuando se abre directamente como archivo local (file://)
+      if (window.location.protocol === 'file:') {
+        showAlert('warning',
+          '⚠️ Estás abriendo este archivo directamente. Para que las peticiones a la API funcionen sin errores CORS, ' +
+          'ejecuta <strong>python3 radar_surebets.py</strong> en la misma carpeta y abre ' +
+          '<a href="http://localhost:8765" style="color:var(--blue)">http://localhost:8765</a> en tu navegador.'
+        );
+      }
     });
 
     /* ── API KEY PERSISTENCE ────────────────────────────── */
