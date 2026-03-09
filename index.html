@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculadora de Arbitraje Deportivo (Surebet / Dutching)</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #0f1b2d 0%, #1a2e4a 50%, #0f1b2d 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 24px 16px 48px;
+      color: #e2e8f0;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 680px;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    header h1 {
+      font-size: clamp(1.4rem, 4vw, 2rem);
+      font-weight: 700;
+      color: #f7fafc;
+      letter-spacing: -0.5px;
+    }
+    header p {
+      margin-top: 8px;
+      color: #94a3b8;
+      font-size: 0.9rem;
+    }
+    .badge {
+      display: inline-block;
+      margin-top: 10px;
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+
+    /* Card */
+    .card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 28px 24px;
+      backdrop-filter: blur(10px);
+      margin-bottom: 20px;
+    }
+
+    /* Form */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-group.full { grid-column: 1 / -1; }
+
+    label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #94a3b8;
+    }
+    .label-icon { margin-right: 5px; }
+
+    input[type="number"] {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1.5px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 1.05rem;
+      color: #f1f5f9;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      -moz-appearance: textfield;
+      appearance: textfield;
+      outline: none;
+      width: 100%;
+    }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+    input[type="number"]::placeholder { color: #475569; }
+    input[type="number"]:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+    }
+    input.error { border-color: #ef4444 !important; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important; }
+
+    .error-msg {
+      font-size: 0.75rem;
+      color: #f87171;
+      min-height: 18px;
+    }
+
+    .btn-calc {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 14px;
+      margin-top: 8px;
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s;
+      letter-spacing: 0.3px;
+    }
+    .btn-calc:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-calc:active { transform: translateY(0); }
+
+    /* Result banner */
+    #result-banner {
+      display: none;
+      border-radius: 14px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      text-align: center;
+      transition: all 0.3s;
+    }
+    #result-banner.profit {
+      display: block;
+      background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(5,150,105,0.1));
+      border: 1.5px solid rgba(16,185,129,0.4);
+    }
+    #result-banner.loss {
+      display: block;
+      background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(220,38,38,0.1));
+      border: 1.5px solid rgba(239,68,68,0.4);
+    }
+    #result-banner .banner-emoji { font-size: 2.2rem; line-height: 1; }
+    #result-banner .banner-title {
+      font-size: clamp(1.2rem, 4vw, 1.6rem);
+      font-weight: 800;
+      margin-top: 8px;
+      letter-spacing: -0.3px;
+    }
+    .profit .banner-title { color: #34d399; }
+    .loss .banner-title { color: #f87171; }
+    #result-banner .banner-pct {
+      font-size: 2.4rem;
+      font-weight: 900;
+      margin: 4px 0;
+      line-height: 1;
+    }
+    .profit .banner-pct { color: #10b981; }
+    .loss .banner-pct { color: #ef4444; }
+    #result-banner .banner-sub {
+      font-size: 0.82rem;
+      color: #94a3b8;
+      margin-top: 6px;
+    }
+
+    /* Summary row */
+    .summary-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .summary-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 14px 16px;
+      text-align: center;
+    }
+    .summary-card .sc-label { font-size: 0.72rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+    .summary-card .sc-value { font-size: 1.15rem; font-weight: 700; color: #e2e8f0; margin-top: 4px; }
+
+    /* Scenarios */
+    .scenarios {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .scenario {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .scenario-header {
+      padding: 12px 16px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+    .scenario-a .scenario-header { background: rgba(59,130,246,0.18); color: #93c5fd; border-bottom: 1px solid rgba(59,130,246,0.25); }
+    .scenario-b .scenario-header { background: rgba(139,92,246,0.18); color: #c4b5fd; border-bottom: 1px solid rgba(139,92,246,0.25); }
+
+    .scenario-body { padding: 14px 16px; }
+    .sc-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 7px 0;
+      font-size: 0.86rem;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      gap: 8px;
+    }
+    .sc-row:last-child { border-bottom: none; }
+    .sc-row .sc-desc { color: #94a3b8; flex: 1; min-width: 0; }
+    .sc-row .sc-val { font-weight: 600; color: #e2e8f0; white-space: nowrap; }
+    .sc-row .sc-val.pos { color: #34d399; }
+    .sc-row .sc-val.neg { color: #f87171; }
+    .sc-row .sc-val.neutral { color: #fbbf24; }
+    .sc-row.total-row { padding-top: 10px; margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.12); }
+    .sc-row.total-row .sc-desc { font-weight: 600; color: #cbd5e1; }
+    .sc-row.total-row .sc-val { font-size: 1rem; }
+
+    #results-section { display: none; }
+
+    /* Responsive */
+    @media (max-width: 520px) {
+      .scenarios { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      .form-group.full { grid-column: unset; }
+      .summary-row { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 340px) {
+      .summary-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>⚡ Calculadora de Arbitraje</h1>
+      <p>Surebet &amp; Dutching para apuestas deportivas</p>
+      <span class="badge">Calculadora Profesional</span>
+    </header>
+
+    <!-- Input card -->
+    <div class="card">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="odds1"><span class="label-icon" aria-hidden="true">🏠</span>Cuota Casa 1</label>
+          <input type="number" id="odds1" min="1.01" step="0.01" placeholder="Ej: 2.60" />
+          <span class="error-msg" id="err-odds1"></span>
+        </div>
+        <div class="form-group">
+          <label for="odds2"><span class="label-icon" aria-hidden="true">🏦</span>Cuota Casa 2</label>
+          <input type="number" id="odds2" min="1.01" step="0.01" placeholder="Ej: 1.65" />
+          <span class="error-msg" id="err-odds2"></span>
+        </div>
+        <div class="form-group full">
+          <label for="stake"><span class="label-icon" aria-hidden="true">💰</span>Inversión Total (€)</label>
+          <input type="number" id="stake" min="0.01" step="0.01" placeholder="Ej: 100" />
+          <span class="error-msg" id="err-stake"></span>
+        </div>
+      </div>
+      <button class="btn-calc" id="btn-calc">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="4" y="2" width="16" height="20" rx="2"/>
+          <line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="10" y2="10"/>
+          <line x1="14" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="10" y2="14"/>
+          <line x1="14" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="10" y2="18"/>
+          <line x1="14" y1="18" x2="16" y2="18"/>
+        </svg>
+        Calcular
+      </button>
+    </div>
+
+    <!-- Results -->
+    <div id="results-section">
+      <div id="result-banner">
+        <div class="banner-emoji" id="banner-emoji"></div>
+        <div class="banner-title" id="banner-title"></div>
+        <div class="banner-pct" id="banner-pct"></div>
+        <div class="banner-sub" id="banner-sub"></div>
+      </div>
+
+      <div class="summary-row">
+        <div class="summary-card">
+          <div class="sc-label">Prob. Implícita Total</div>
+          <div class="sc-value" id="s-prob"></div>
+        </div>
+        <div class="summary-card">
+          <div class="sc-label">Beneficio / Pérdida neta</div>
+          <div class="sc-value" id="s-net"></div>
+        </div>
+        <div class="summary-card">
+          <div class="sc-label">Stake Casa 1</div>
+          <div class="sc-value" id="s-stake1"></div>
+        </div>
+        <div class="summary-card">
+          <div class="sc-label">Stake Casa 2</div>
+          <div class="sc-value" id="s-stake2"></div>
+        </div>
+      </div>
+
+      <div class="scenarios">
+        <!-- Scenario A -->
+        <div class="scenario scenario-a">
+          <div class="scenario-header"><span aria-hidden="true">🏠</span> Escenario A — Gana Casa 1</div>
+          <div class="scenario-body">
+            <div class="sc-row">
+              <span class="sc-desc">Apostado en Casa 1</span>
+              <span class="sc-val" id="a-stake1"></span>
+            </div>
+            <div class="sc-row">
+              <span class="sc-desc">Pérdida en Casa 2</span>
+              <span class="sc-val neg" id="a-lost2"></span>
+            </div>
+            <div class="sc-row">
+              <span class="sc-desc">Retorno bruto Casa 1</span>
+              <span class="sc-val pos" id="a-return"></span>
+            </div>
+            <div class="sc-row">
+              <span class="sc-desc">Inversión total</span>
+              <span class="sc-val neutral" id="a-total"></span>
+            </div>
+            <div class="sc-row total-row">
+              <span class="sc-desc">Beneficio / Pérdida neta</span>
+              <span class="sc-val" id="a-net"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Scenario B -->
+        <div class="scenario scenario-b">
+          <div class="scenario-header"><span aria-hidden="true">🏦</span> Escenario B — Gana Casa 2</div>
+          <div class="scenario-body">
+            <div class="sc-row">
+              <span class="sc-desc">Apostado en Casa 2</span>
+              <span class="sc-val" id="b-stake2"></span>
+            </div>
+            <div class="sc-row">
+              <span class="sc-desc">Pérdida en Casa 1</span>
+              <span class="sc-val neg" id="b-lost1"></span>
+            </div>
+            <div class="sc-row">
+              <span class="sc-desc">Retorno bruto Casa 2</span>
+              <span class="sc-val pos" id="b-return"></span>
+            </div>
+            <div class="sc-row">
+              <span class="sc-desc">Inversión total</span>
+              <span class="sc-val neutral" id="b-total"></span>
+            </div>
+            <div class="sc-row total-row">
+              <span class="sc-desc">Beneficio / Pérdida neta</span>
+              <span class="sc-val" id="b-net"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function fmt(value, sign) {
+      const num = Math.abs(value).toFixed(2);
+      if (sign) return (value >= 0 ? '+' : '-') + num + ' €';
+      return num + ' €';
+    }
+
+    function setNetStyle(el, value) {
+      el.textContent = fmt(value, true);
+      el.className = 'sc-val ' + (value > 0 ? 'pos' : value < 0 ? 'neg' : 'neutral');
+    }
+
+    function validateField(id, errId) {
+      const el = document.getElementById(id);
+      const err = document.getElementById(errId);
+      const val = parseFloat(el.value);
+      if (el.value.trim() === '' || isNaN(val)) {
+        el.classList.add('error');
+        err.textContent = 'Introduce un número válido.';
+        return null;
+      }
+      if (val <= 1 && id !== 'stake') {
+        el.classList.add('error');
+        err.textContent = 'La cuota debe ser mayor que 1.';
+        return null;
+      }
+      if (id === 'stake' && val <= 0) {
+        el.classList.add('error');
+        err.textContent = 'La inversión debe ser mayor que 0.';
+        return null;
+      }
+      el.classList.remove('error');
+      err.textContent = '';
+      return val;
+    }
+
+    function calculate() {
+      const odds1 = validateField('odds1', 'err-odds1');
+      const odds2 = validateField('odds2', 'err-odds2');
+      const totalStake = validateField('stake', 'err-stake');
+
+      if (odds1 === null || odds2 === null || totalStake === null) return;
+
+      // Implied probability
+      const P = (1 / odds1) + (1 / odds2);
+
+      // Stakes
+      const stake1 = totalStake / (P * odds1);
+      const stake2 = totalStake / (P * odds2);
+
+      const stake1r = Math.round(stake1 * 100) / 100;
+      const stake2r = Math.round(stake2 * 100) / 100;
+      const investedTotal = stake1r + stake2r;
+
+      // Returns
+      const returnA = stake1r * odds1;   // Casa 1 wins
+      const returnB = stake2r * odds2;   // Casa 2 wins
+
+      const netA = returnA - investedTotal;
+      const netB = returnB - investedTotal;
+      const avgNet = (netA + netB) / 2;
+
+      const profitPct = ((1 / P) - 1) * 100;
+      const isProfit = P < 1;
+
+      // Banner
+      const banner = document.getElementById('result-banner');
+      banner.className = isProfit ? 'profit' : 'loss';
+      document.getElementById('banner-emoji').textContent = isProfit ? '🟢' : '🔴';
+      document.getElementById('banner-title').textContent = isProfit ? '¡SUREBET DETECTADA — BENEFICIO GARANTIZADO!' : 'OPERACIÓN CON PÉRDIDAS';
+      document.getElementById('banner-pct').textContent = (isProfit ? '+' : '') + profitPct.toFixed(2) + '%';
+      document.getElementById('banner-sub').textContent = isProfit
+        ? `Probabilidad implícita: ${(P * 100).toFixed(2)}% — Hay un margen de arbitraje positivo.`
+        : `Probabilidad implícita: ${(P * 100).toFixed(2)}% — Las casas retienen el ${(-profitPct).toFixed(2)}% del valor.`;
+
+      // Summary
+      document.getElementById('s-prob').textContent = (P * 100).toFixed(2) + '%';
+      const sNet = document.getElementById('s-net');
+      sNet.textContent = fmt(avgNet, true);
+      sNet.style.color = avgNet >= 0 ? '#34d399' : '#f87171';
+
+      document.getElementById('s-stake1').textContent = fmt(stake1r, false);
+      document.getElementById('s-stake2').textContent = fmt(stake2r, false);
+
+      // Scenario A (Casa 1 wins)
+      document.getElementById('a-stake1').textContent = fmt(stake1r, false);
+      document.getElementById('a-lost2').textContent = '-' + fmt(stake2r, false);
+      document.getElementById('a-return').textContent = fmt(returnA, false);
+      document.getElementById('a-total').textContent = fmt(investedTotal, false);
+      setNetStyle(document.getElementById('a-net'), netA);
+
+      // Scenario B (Casa 2 wins)
+      document.getElementById('b-stake2').textContent = fmt(stake2r, false);
+      document.getElementById('b-lost1').textContent = '-' + fmt(stake1r, false);
+      document.getElementById('b-return').textContent = fmt(returnB, false);
+      document.getElementById('b-total').textContent = fmt(investedTotal, false);
+      setNetStyle(document.getElementById('b-net'), netB);
+
+      document.getElementById('results-section').style.display = 'block';
+      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      document.getElementById('results-section').scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth', block: 'start' });
+    }
+
+    document.getElementById('btn-calc').addEventListener('click', calculate);
+
+    // Allow Enter key to trigger calculation
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') calculate();
+    });
+  </script>
+</body>
+</html>
