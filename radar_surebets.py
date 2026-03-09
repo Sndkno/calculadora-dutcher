@@ -19,7 +19,7 @@ import requests
 # ─── CONFIGURACIÓN ────────────────────────────────────────────────────────────
 
 # ⚠️  Sustituye este valor por tu propia API Key de The Odds API
-API_KEY = "TU_API_KEY_AQUI"
+API_KEY = "60e4187d5ca5237f4a6b82063f8d613a"
 
 # Deporte a consultar (mercado de 2 opciones)
 # Opciones populares: "tennis_atp", "basketball_nba", "americanfootball_nfl"
