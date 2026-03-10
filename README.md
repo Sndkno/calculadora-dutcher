@@ -48,15 +48,22 @@ Luego abre `http://localhost:8080` en tu navegador.
 
 ## 📡 Radar de Surebets (Aplicación Web)
 
-El archivo `radar_surebets.html` es una **aplicación web de una sola página** que se conecta directamente a [The Odds API](https://the-odds-api.com/) desde el navegador, detecta oportunidades de arbitraje en tiempo real y muestra los resultados con una calculadora de stakes integrada.
+El archivo `radar_surebets.html` es una **aplicación web de una sola página** que se conecta a [The Odds API](https://the-odds-api.com/) a través del servidor proxy local incluido, detecta oportunidades de arbitraje en tiempo real y muestra los resultados con una calculadora de stakes integrada.
+
+> ⚠️ **Importante:** `radar_surebets.html` **no funciona** si se abre directamente haciendo doble clic (protocolo `file://`). Los navegadores bloquean las peticiones a APIs externas desde ese protocolo (error CORS). Debes usar el servidor local incluido.
 
 ### ¿Cómo abro la aplicación web?
 
-1. Abre `radar_surebets.html` directamente en tu navegador (doble clic o `xdg-open`).
-2. Introduce tu **API Key** de [The Odds API](https://the-odds-api.com/) (se guarda automáticamente en el navegador).
-3. Pulsa **"1. Cargar Deportes Disponibles"** para poblar el selector de deportes.
-4. Selecciona el **deporte**, la **región** y, opcionalmente, filtra las casas de apuestas.
-5. Pulsa **"2. Buscar Surebets"** para obtener los resultados.
+1. Abre una **terminal** en la carpeta del proyecto.
+2. Ejecuta el servidor local:
+   ```bash
+   python3 radar_surebets.py
+   ```
+3. El script abrirá automáticamente **http://localhost:8765** en tu navegador.
+4. Introduce tu **API Key** de [The Odds API](https://the-odds-api.com/) (se guarda automáticamente en el navegador).
+5. Pulsa **"1. Cargar Deportes Disponibles"** para poblar el selector de deportes.
+6. Selecciona el **deporte**, la **región** y, opcionalmente, filtra las casas de apuestas.
+7. Pulsa **"2. Buscar Surebets"** para obtener los resultados.
 
 ### Características
 

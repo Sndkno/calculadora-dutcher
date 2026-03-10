@@ -970,13 +970,20 @@
         if (e.target.closest('#bm-grid')) updateBmLabel();
       });
 
-      // Aviso cuando se abre directamente como archivo local (file://)
+      // Aviso y bloqueo cuando se abre directamente como archivo local (file://)
       if (window.location.protocol === 'file:') {
         showAlert('warning',
-          '⚠️ Estás abriendo este archivo directamente. Para que las peticiones a la API funcionen sin errores CORS, ' +
-          'ejecuta <strong>python3 radar_surebets.py</strong> en la misma carpeta y abre ' +
-          '<a href="http://localhost:8765" style="color:var(--blue)">http://localhost:8765</a> en tu navegador.'
+          '⚠️ <strong>Archivo abierto directamente — las búsquedas no funcionarán.</strong><br>' +
+          'Los navegadores bloquean las peticiones a APIs externas cuando el archivo se abre con el protocolo <code>file://</code> ' +
+          '(error CORS: el origen es "null"). Para usar el buscador de cuotas debes ejecutar el servidor local:<br><br>' +
+          '<strong>1.</strong> Abre una terminal en la carpeta del proyecto.<br>' +
+          '<strong>2.</strong> Ejecuta: <code>python3 radar_surebets.py</code><br>' +
+          '<strong>3.</strong> Abre <a href="http://localhost:8765" style="color:var(--blue)">http://localhost:8765</a> en tu navegador.'
         );
+        $('btn-load-sports').disabled = true;
+        $('btn-load-sports').title = 'No disponible: abre la página desde el servidor local (python3 radar_surebets.py)';
+        $('btn-search').disabled = true;
+        $('btn-search').title = 'No disponible: abre la página desde el servidor local (python3 radar_surebets.py)';
       }
     });
 
@@ -1042,6 +1049,21 @@
       $('bm-toggle-label').textContent = selected.length === 0
         ? 'Todas las casas (por defecto)'
         : `${selected.length} casa${selected.length > 1 ? 's' : ''} seleccionada${selected.length > 1 ? 's' : ''}`;
+    }
+
+    /* ── ERROR HELPERS ──────────────────────────────────── */
+    // Returns a descriptive Spanish message for fetch() network/CORS errors.
+    function getFetchErrorMessage(err) {
+      if (err instanceof TypeError) {
+        // "Failed to fetch" / "NetworkError" — typically CORS or no connectivity
+        if (window.location.protocol === 'file:') {
+          return 'Error CORS: el archivo está abierto directamente con <code>file://</code>. ' +
+            'Ejecuta <strong>python3 radar_surebets.py</strong> y accede desde ' +
+            '<a href="http://localhost:8765" style="color:var(--blue)">http://localhost:8765</a>.';
+        }
+        return 'No se pudo conectar con The Odds API. Comprueba tu conexión a internet y que la API Key sea correcta.';
+      }
+      return err.message || 'Error desconocido.';
     }
 
     /* ── ALERTS ─────────────────────────────────────────── */
@@ -1110,7 +1132,7 @@
         showAlert('info', `✅ ${sports.length} deportes cargados correctamente. Selecciona uno y pulsa "Buscar Surebets".`);
 
       } catch (err) {
-        showAlert('error', err.message || 'Error al cargar deportes. Verifica tu conexión.');
+        showAlert('error', getFetchErrorMessage(err));
       } finally {
         setBtnLoading('btn-load-sports', 'sports-btn-icon', 'sports-btn-text', false, '1. Cargar Deportes Disponibles', '🔄');
       }
@@ -1188,7 +1210,7 @@
         renderResults(allSurebets, sport, events.length);
 
       } catch (err) {
-        showAlert('error', err.message || 'Error al buscar surebets.');
+        showAlert('error', getFetchErrorMessage(err));
         hideResults();
       } finally {
         setBtnLoading('btn-search', 'search-btn-icon', 'search-btn-text', false, '2. Buscar Surebets', '🎯');
